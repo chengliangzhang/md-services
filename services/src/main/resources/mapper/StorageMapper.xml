@@ -1,0 +1,1375 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.storage.dao.StorageDao">
+    <!-- 用于过滤账号的表 -->
+    <sql id="ProjectMemberTable">
+        <if test="accountId != null and accountId != ''.toString()">
+            inner join maoding_web_project_member project_member on (project_member.deleted = 0
+                    and node.project_id = project_member.project_id
+                    and node.task_id = ifnull(project_member.node_id,project_member.target_id)
+                    and find_in_set(project_member.account_id,#{accountId}))
+            <if test="(roleAttr != null and roleAttr != ''.toString())
+                    or (isTaskLeader != null and isTaskLeader != ''.toString())
+                    or (isTaskDesigner != null and isTaskDesigner != ''.toString())
+                    or (isTaskChecker != null and isTaskChecker != ''.toString())
+                    or (isTaskAuditor != null and isTaskAuditor != ''.toString())
+                    or (needRoleInfo != null and needRoleInfo != ''.toString())">
+                inner join md_type_web_role_project web_role_type on (project_member.member_type = web_role_type.type_id
+                    <if test="roleAttr != null and roleAttr != ''.toString()">
+                        and <![CDATA[((conv(web_role_type.attr_str,2,10) & conv(#{roleAttr},2,10)) > 0)]]>
+                    </if>
+                    <if test="isTaskLeader != null and isTaskLeader != ''.toString()">
+                        and web_role_type.is_task_leader = 1
+                    </if>
+                    <if test="isTaskDesigner != null and isTaskDesigner != ''.toString()">
+                        and web_role_type.is_task_designer = 1
+                    </if>
+                    <if test="isTaskChecker != null and isTaskChecker != ''.toString()">
+                        and web_role_type.is_task_checker = 1
+                    </if>
+                    <if test="isTaskAuditor != null and isTaskAuditor != ''.toString()">
+                        and web_role_type.is_task_auditor = 1
+                    </if>
+                )
+            </if>
+        </if>
+    </sql>
+    
+    <sql id="CompanyMemberTable">
+        <if test="accountId != null and accountId != ''.toString()">
+            inner join maoding_web_company_user company_user on (company_user.audit_status = '1'
+                and find_in_set(company_user.user_id,#{accountId}))
+            inner join maoding_web_project_member project_member on (project_member.deleted = 0
+                and project_member.project_id = node.project_id
+                and project_member.company_id = company_user.company_id)
+            <if test="(roleAttr != null and roleAttr != ''.toString())
+                    or (isTaskLeader != null and isTaskLeader != ''.toString())
+                    or (isTaskDesigner != null and isTaskDesigner != ''.toString())
+                    or (isTaskChecker != null and isTaskChecker != ''.toString())
+                    or (isTaskAuditor != null and isTaskAuditor != ''.toString())
+                    or (needRoleInfo != null and needRoleInfo != ''.toString())">
+                inner join md_type_web_role_project web_role_type on (project_member.member_type = web_role_type.type_id
+                    <if test="roleAttr != null and roleAttr != ''.toString()">
+                        and <![CDATA[((conv(web_role_type.attr_str,2,10) & conv(#{roleAttr},2,10)) > 0)]]>
+                    </if>
+                    <if test="isTaskLeader != null and isTaskLeader != ''.toString()">
+                        and web_role_type.is_task_leader = 1
+                    </if>
+                    <if test="isTaskDesigner != null and isTaskDesigner != ''.toString()">
+                        and web_role_type.is_task_designer = 1
+                    </if>
+                    <if test="isTaskChecker != null and isTaskChecker != ''.toString()">
+                        and web_role_type.is_task_checker = 1
+                    </if>
+                    <if test="isTaskAuditor != null and isTaskAuditor != ''.toString()">
+                        and web_role_type.is_task_auditor = 1
+                    </if>
+                )
+            </if>
+        </if>
+    </sql>
+
+    <!-- 用于显示所有者名称、最后更改者名称信息的表 -->
+    <sql id="TextTableForNodeAll">
+        <if test="needOwnerName != null and needOwnerName != ''.toString()">
+            left join maoding_web_account owner on (owner.status = '0' and owner.id = node.owner_user_id)
+        </if>
+        <if test="needLastModifyUserName != null and needLastModifyUserName != ''.toString()">
+            left join maoding_web_account last_modify on (last_modify.status = '0' and last_modify.id = node.last_modify_user_id)
+        </if>
+    </sql>
+
+    <!-- 用于显示项目节点公司名信息的表 -->
+    <sql id="TextTableForNodeProject">
+        <include refid="TextTableForNodeAll"/>
+        <if test="needCompanyName != null and needCompanyName != ''.toString()">
+            left join maoding_web_company company on (company.status = '0' and company.id = node.prepare_company_id)
+        </if>
+    </sql>
+
+    <!-- 用于显示分类节点公司名的表，同项目节点内增加方式 -->
+    <sql id="TextTableForNodeRange">
+        <include refid="TextTableForNodeProject"/>
+    </sql>
+
+    <!-- 用于显示任务节点项目名、公司名、任务路径等信息的表 -->
+    <sql id="TextTableForNodeTask">
+        <include refid="TextTableForNodeProject"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())">
+            inner join maoding_web_project project on (project.pstatus = '0' and project.id = node.project_id)
+        </if>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (issueId != null and issueId != ''.toString())">
+            inner join md_web_task task on (task.id = node.task_id)
+        </if>
+    </sql>
+
+    <!-- 用于显示文档节点项目名、公司名、任务路径等信息的表 -->
+    <sql id="TextTableForNodeStorage">
+        <include refid="TextTableForNodeAll"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needCompanyName != null and needCompanyName != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (needCompanyId != null and needCompanyId != ''.toString())
+                or (companyId != null and companyId != ''.toString())
+                or (notCompanyId != null and notCompanyId != ''.toString())">
+            left join md_web_task task on (task.id = node.task_id)
+        </if>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (needCompanyId != null and needCompanyId != ''.toString())
+                or (companyId != null and companyId != ''.toString())
+                or (notCompanyId != null and notCompanyId != ''.toString())
+                or (needCompanyName != null and needCompanyName != ''.toString())
+                or (needTaskPath != null and needTaskPath != ''.toString())
+                or (needTaskName != null and needTaskName != ''.toString())">
+            left join maoding_web_project project on (project.pstatus = '0' and project.id = ifnull(node.project_id,task.project_id))
+        </if>
+        <if test="needCompanyName != null and needCompanyName != ''.toString()">
+            left join maoding_web_company company on (company.status = '0' and company.id = ifnull(task.company_id,project.company_id))
+        </if>
+    </sql>
+
+
+    <!-- 公司名、所有者名、最后修改者名等通用信息字段 -->
+    <sql id="ExtraFieldForNodeAll">
+        <if test="(accountId != null and accountId != ''.toString())
+                and (needRoleInfo != null and needRoleInfo != ''.toString())">
+            group_concat(distinct web_role_type.type_id) as role_type_id,
+            group_concat(distinct web_role_type.type_name) as role_name,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.attr_str,'100000'),2,10)),10,2) as role_attr,
+            conv(bit_or(conv(if(node.project_id = project_member.project_id,
+                web_role_type.is_project_role,'0'),2,10)),10,2) as is_project_role,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.is_task_role,'0'),2,10)),10,2) as is_task_role,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.is_task_leader,'0'),2,10)),10,2) as is_task_leader,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.is_task_designer,'0'),2,10)),10,2) as is_task_designer,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.is_task_checker,'0'),2,10)),10,2) as is_task_checker,
+            conv(bit_or(conv(if(node.task_id = ifnull(project_member.node_id,project_member.target_id),
+                web_role_type.is_task_auditor,'0'),2,10)),10,2) as is_task_auditor,
+        </if>
+        <if test="needCompanyName != null and needCompanyName != ''.toString()">
+            company.company_name,
+        </if>
+        <if test="needOwnerName != null and needOwnerName != ''.toString()">
+            owner.user_name as owner_name,
+        </if>
+        <if test="needLastModifyUserName != null and needLastModifyUserName != ''.toString()">
+            last_modify.user_name as last_modify_user_name,
+        </if>
+    </sql>
+
+    <!-- 需要项目节点额外显示的信息 -->
+    <sql id="ExtraFieldForNodeProject">
+        <include refid="ExtraFieldForNodeAll"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())">
+            concat('/',node.prepare_project_name) as path,
+        </if>
+        <if test="needProjectName != null and needProjectName != ''.toString()">
+            node.prepare_project_name as project_name,
+        </if>
+        <if test="needCompanyId != null and needCompanyId != ''.toString()">
+            node.prepare_company_id as company_id,
+        </if>
+        <if test="needTaskName != null and needTaskName != ''.toString()">
+            node.prepare_task_name as task_name,
+        </if>
+        <if test="needTaskPath != null and needTaskPath != ''.toString()">
+            null as task_path,
+        </if>
+        <if test="needIssueId != null and needTaskPath != ''.toString()">
+            null as issue_id,
+        </if>
+        <if test="needIssuePath != null and needTaskPath != ''.toString()">
+            null as issue_path,
+        </if>
+        <if test="needDesignTaskPath != null and needTaskPath != ''.toString()">
+            null as design_task_path,
+        </if>
+    </sql>
+
+    <!-- 需要分类节点额外显示的信息 -->
+    <sql id="ExtraFieldForNodeRange">
+        <include refid="ExtraFieldForNodeAll"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())">
+            concat(ifnull(concat('/',node.prepare_project_name),''),
+            '/',node.range_name) as path,
+        </if>
+        <if test="needProjectName != null and needProjectName != ''.toString()">
+            node.prepare_project_name as project_name,
+        </if>
+        <if test="needCompanyId != null and needCompanyId != ''.toString()">
+            node.prepare_company_id as company_id,
+        </if>
+        <if test="needTaskName != null and needTaskName != ''.toString()">
+            node.prepare_task_name as task_name,
+        </if>
+        <if test="needTaskPath != null and needTaskPath != ''.toString()">
+            null as task_path,
+        </if>
+        <if test="needIssueId != null and needTaskPath != ''.toString()">
+            null as issue_id,
+        </if>
+        <if test="needIssuePath != null and needTaskPath != ''.toString()">
+            null as issue_path,
+        </if>
+        <if test="needDesignTaskPath != null and needTaskPath != ''.toString()">
+            null as design_task_path,
+        </if>
+    </sql>
+
+    <!-- 需要任务节点额外显示的信息 -->
+    <sql id="ExtraFieldForNodeTask">
+        <include refid="ExtraFieldForNodeAll"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())">
+            concat(ifnull(concat('/',project.project_name),''),
+                ifnull(concat('/',node.range_name),''),
+                '/',task.path) as path,
+        </if>
+        <if test="needProjectName != null and needProjectName != ''.toString()">
+            project.project_name,
+        </if>
+        <if test="needCompanyId != null and needCompanyId != ''.toString()">
+            node.prepare_company_id as company_id,
+        </if>
+        <if test="needTaskName != null and needTaskName != ''.toString()">
+            node.prepare_task_name as task_name,
+        </if>
+        <if test="needTaskPath != null and needTaskPath != ''.toString()">
+            task.path as task_path,
+        </if>
+        <if test="needIssueId != null and needTaskPath != ''.toString()">
+            task.issue_id as issue_id,
+        </if>
+        <if test="needIssuePath != null and needTaskPath != ''.toString()">
+            task.issue_path as issue_path,
+        </if>
+        <if test="needDesignTaskPath != null and needTaskPath != ''.toString()">
+            task.task_path as design_task_path,
+        </if>
+    </sql>
+
+    <!-- 需要文档节点额外显示的信息 -->
+    <sql id="ExtraFieldForNodeStorage">
+        <include refid="ExtraFieldForNodeAll"/>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())">
+            concat(ifnull(concat('/',project.project_name),''),
+            ifnull(concat('/',node.range_name),''),
+            ifnull(concat('/',task.path),''),
+            '/',node.storage_path) as path,
+        </if>
+        <if test="needProjectName != null and needProjectName != ''.toString()">
+            project.project_name,
+        </if>
+        <if test="needCompanyId != null and needCompanyId != ''.toString()">
+            ifnull(task.company_id,project.company_id) as company_id,
+        </if>
+        <if test="needTaskName != null and needTaskName != ''.toString()">
+            task.task_name as task_name,
+        </if>
+        <if test="needTaskPath != null and needTaskPath != ''.toString()">
+            task.path as task_path,
+        </if>
+        <if test="needIssueId != null and needTaskPath != ''.toString()">
+            task.issue_id as issue_id,
+        </if>
+        <if test="needIssuePath != null and needTaskPath != ''.toString()">
+            task.issue_path as issue_path,
+        </if>
+        <if test="needDesignTaskPath != null and needTaskPath != ''.toString()">
+            task.task_path as design_task_path,
+        </if>
+    </sql>
+
+    <sql id="QueryForNodeAll">
+        <!-- 节点属性 -->
+        <if test="id != null and id != ''.toString()">
+            and find_in_set(node.id,#{id})
+        </if>
+        <if test="fuzzyId != null and fuzzyId != ''.toString()">
+            and find_in_set(substring(node.id,1,32),#{fuzzyId})
+        </if>
+        <if test="pid != null and pid != ''.toString()">
+            <choose>
+                <when test="pid == '-'.toString()">
+                    and (pid is null)
+                </when>
+                <otherwise>
+                    and find_in_set(node.pid,#{pid})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="name != null and name != ''.toString()">
+            and find_in_set(node.name,#{name})
+        </if>
+        <if test="fuzzyName != null and fuzzyName != ''.toString()">
+            and (node.name like concat('%',#{fuzzyName},'%'))
+        </if>
+        <if test="typeId != null and typeId != ''.toString()">
+            and find_in_set(node.type_id,#{typeId})
+        </if>
+        <if test="notTypeId != null and notTypeId != ''.toString()">
+            and not find_in_set(node.type_id,#{notTypeId})
+        </if>
+        <if test="projectId != null and projectId != ''.toString()">
+            and find_in_set(node.project_id,#{projectId})
+        </if>
+        <if test="notProjectId != null and notProjectId != ''.toString()">
+            and not find_in_set(node.project_id,#{notProjectId})
+        </if>
+        <if test="rangeId != null and rangeId != ''.toString()">
+            and find_in_set(node.range_id,#{rangeId})
+        </if>
+        <if test="notRangeId != null and notRangeId != ''.toString()">
+            and not find_in_set(node.range_id,#{notRangeId})
+        </if>
+        <if test="taskId != null and taskId != ''.toString()">
+            and find_in_set(node.task_id,#{taskId})
+        </if>
+        <if test="notTaskId != null and notTaskId != ''.toString()">
+            and not find_in_set(node.task_id,#{notTaskId})
+        </if>
+        <if test="ownerUserId != null and ownerUserId != ''.toString()">
+            and find_in_set(node.owner_user_id,#{ownerUserId})
+        </if>
+        <if test="notOwnerUserId != null and notOwnerUserId != ''.toString()">
+            and not find_in_set(node.owner_user_id,#{notOwnerUserId})
+        </if>
+        <if test="lastModifyRoleId != null and lastModifyRoleId != ''.toString()">
+            and find_in_set(node.last_modify_role_id,#{lastModifyRoleId})
+        </if>
+        <if test="notLastModifyRoleId != null and notLastModifyRoleId != ''.toString()">
+            and not find_in_set(node.last_modify_role_id,#{notLastModifyRoleId})
+        </if>
+        <!-- 布尔属性 -->
+        <if test="nodeTypeAttr != null and nodeTypeAttr != ''.toString()">
+            <![CDATA[and ((conv(node.node_type_attr,2,10) & conv(#{nodeTypeAttr},2,10)) > 0)]]>
+        </if>
+        <if test="directoryMode != null and directoryMode != ''.toString()">
+            and find_in_set(node.is_directory,#{directoryMode})
+        </if>
+        <if test="designMode != null and designMode != ''.toString()">
+            and find_in_set(node.is_design,#{designMode})
+        </if>
+        <if test="caMode != null and caMode != ''.toString()">
+            and find_in_set(node.is_ca,#{caMode})
+        </if>
+        <if test="commitMode != null and commitMode != ''.toString()">
+            and find_in_set(node.is_commit,#{commitMode})
+        </if>
+        <if test="historyMode != null and historyMode != ''.toString()">
+            and find_in_set(node.is_history,#{historyMode})
+        </if>
+        <!-- 关联其他表的属性 -->
+        <if test="companyName != null and companyName != ''.toString()">
+            and find_in_set(company.company_name,#{companyName})
+        </if>
+        <if test="fuzzyCompanyName != null and fuzzyCompanyName != ''.toString()">
+            and (company.company_name like concat('%',#{fuzzyCompanyName},'%'))
+        </if>
+        <if test="ownerName != null and ownerName != ''.toString()">
+            and find_in_set(owner.user_name,#{ownerName})
+        </if>
+        <if test="fuzzyOwnerName != null and fuzzyOwnerName != ''.toString()">
+            and (owner.user_name like concat('%',#{fuzzyOwnerName},'%'))
+        </if>
+        <if test="lastModifyUserName != null and lastModifyUserName != ''.toString()">
+            and find_in_set(last_modify.user_name,#{lastModifyUserName})
+        </if>
+        <if test="fuzzyLastModifyUserName != null and fuzzyLastModifyUserName != ''.toString()">
+            and (last_modify.user_name like concat('%',#{fuzzyLastModifyUserName},'%'))
+        </if>
+    </sql>
+
+    <sql id="QueryForNodeProject">
+        <include refid="QueryForNodeAll"/>
+        <if test="path != null and path != ''.toString()">
+            and (concat('/',node.prepare_project_name) = #{path})
+        </if>
+        <if test="parentPath != null and parentPath != ''.toString()">
+            and (concat('/',node.prepare_project_name) like concat(#{parentPath},'/%'))
+        </if>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            and (concat('/',node.prepare_project_name) = #{fuzzyPath} or #{fuzzyPath} like concat(concat('/',node.prepare_project_name),'/%'))
+        </if>
+        <if test="projectName != null and projectName != ''.toString()">
+            and find_in_set(node.prepare_project_name,#{projectName})
+        </if>
+        <if test="fuzzyProjectName != null and fuzzyProjectName != ''.toString()">
+            and (node.prepare_project_name like concat('%',#{fuzzyProjectName},'%'))
+        </if>
+        <if test="companyId != null and companyId != ''.toString()">
+            and find_in_set(node.prepare_company_id,#{companyId})
+        </if>
+        <if test="notCompanyId != null and notCompanyId != ''.toString()">
+            and not find_in_set(node.prepare_company_id,#{notCompanyId})
+        </if>
+    </sql>
+
+    <sql id="QueryForNodeRange">
+        <include refid="QueryForNodeAll"/>
+        <if test="path != null and path != ''.toString()">
+            and (concat(ifnull(concat('/',node.prepare_project_name),''),'/',node.range_name) = #{path})
+        </if>
+        <if test="parentPath != null and parentPath != ''.toString()">
+            and (concat(ifnull(concat('/',node.prepare_project_name),''),'/',node.range_name) like concat(#{parentPath},'/%'))
+        </if>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            and (concat(ifnull(concat('/',node.prepare_project_name),''),'/',node.range_name) = #{fuzzyPath} or
+                #{fuzzyPath} like concat(concat(ifnull(concat('/',node.prepare_project_name),''),'/',node.range_name),'/%'))
+        </if>
+        <if test="projectName != null and projectName != ''.toString()">
+            and find_in_set(node.prepare_project_name,#{projectName})
+        </if>
+        <if test="fuzzyProjectName != null and fuzzyProjectName != ''.toString()">
+            and (node.prepare_project_name like concat('%',#{fuzzyProjectName},'%'))
+        </if>
+        <if test="companyId != null and companyId != ''.toString()">
+            and find_in_set(node.prepare_company_id,#{companyId})
+        </if>
+        <if test="notCompanyId != null and notCompanyId != ''.toString()">
+            and not find_in_set(node.prepare_company_id,#{notCompanyId})
+        </if>
+    </sql>
+
+    <sql id="QueryForNodeTask">
+        <include refid="QueryForNodeAll"/>
+        <if test="path != null and path != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),'/',task.path) = #{path})
+        </if>
+        <if test="parentPath != null and parentPath != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),'/',task.path) like concat(#{parentPath},'/%'))
+        </if>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),'/',task.path) = #{fuzzyPath} or
+                #{fuzzyPath} like concat(concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),'/',task.path),'/%'))
+        </if>
+        <if test="projectName != null and projectName != ''.toString()">
+            and find_in_set(project.project_name,#{projectName})
+        </if>
+        <if test="fuzzyProjectName != null and fuzzyProjectName != ''.toString()">
+            and (project.project_name like concat('%',#{fuzzyProjectName},'%'))
+        </if>
+        <if test="companyId != null and companyId != ''.toString()">
+            and find_in_set(node.prepare_company_id,#{companyId})
+        </if>
+        <if test="notCompanyId != null and notCompanyId != ''.toString()">
+            and not find_in_set(node.prepare_company_id,#{notCompanyId})
+        </if>
+        <if test="issueId != null and issueId != ''.toString()">
+            and not find_in_set(task.issue_id,#{issueId})
+        </if>
+    </sql>
+
+    <sql id="QueryForNodeStorage">
+        <include refid="QueryForNodeAll"/>
+        <if test="path != null and path != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),ifnull(concat('/',task.path),''),'/',node.storage_path) = #{path})
+        </if>
+        <if test="parentPath != null and parentPath != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),ifnull(concat('/',task.path),''),'/',node.storage_path) like concat(#{parentPath},'/%'))
+        </if>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            and (concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),ifnull(concat('/',task.path),''),'/',node.storage_path) = #{fuzzyPath} or
+                #{fuzzyPath} like concat(concat(ifnull(concat('/',project.project_name),''),ifnull(concat('/',node.range_name),''),ifnull(concat('/',task.path),''),'/',node.storage_path),'/%'))
+        </if>
+        <if test="projectName != null and projectName != ''.toString()">
+            and find_in_set(project.project_name,#{projectName})
+        </if>
+        <if test="fuzzyProjectName != null and fuzzyProjectName != ''.toString()">
+            and (project.project_name like concat('%',#{fuzzyProjectName},'%'))
+        </if>
+        <if test="companyId != null and companyId != ''.toString()">
+            and find_in_set(ifnull(task.company_id,project.company_id),#{companyId})
+        </if>
+        <if test="notCompanyId != null and notCompanyId != ''.toString()">
+            and not find_in_set(ifnull(task.company_id,project.company_id),#{notCompanyId})
+        </if>
+        <if test="issueId != null and issueId != ''.toString()">
+            and not find_in_set(task.issue_id,#{issueId})
+        </if>
+    </sql>
+
+    <select id="listCANode" parameterType="com.maoding.storage.zeroc.QueryCANodeDTO" resultType="com.maoding.storage.zeroc.CANodeDTO">
+        select distinct node_with_commit.*
+        from (
+            select distinct node_with_ca_single.*,
+                commit_history.file_length as last_commit_file_length,
+                commit_history.file_md5 as last_commit_file_md5
+            from (
+                select distinct node_with_ca.*
+                from (
+                    select distinct node_with_role.*,
+                        ca_history.file_length as last_file_length,
+                        ca_history.file_md5 as last_file_md5
+                    from (
+                        select node.*,
+                            group_concat(node.single_role_type_id) as role_type_id,
+                            group_concat(node.single_role_name) as role_name
+                        from md_file_node node
+                        <where>
+                            <if test="statusAttr != null">
+                                <![CDATA[and ((conv(node.status,2,10) & conv(#{statusAttr},2,10)) > 0)]]>
+                            </if>
+                            <if test="passDesign != null">
+                                and find_in_set(node.is_pass_design,#{passDesign})
+                            </if>
+                            <if test="passCheck != null">
+                                and find_in_set(node.is_pass_check,#{passCheck})
+                            </if>
+                            <if test="passAudit != null">
+                                and find_in_set(node.is_pass_audit,#{passAudit})
+                            </if>
+                            <if test="nodeTypeAttr != null">
+                                <![CDATA[and ((conv(node.node_type_attr,2,10) & conv(#{nodeTypeAttr},2,10)) > 0)]]>
+                            </if>
+                            <if test="isDesign != null">
+                                and find_in_set(node.is_design,#{isDesign})
+                            </if>
+                            <if test="isCA != null">
+                                and find_in_set(node.is_ca,#{isCA})
+                            </if>
+                            <if test="isCommit != null">
+                                and find_in_set(node.is_commit,#{isCommit})
+                            </if>
+                            <if test="isHistory != null">
+                                and find_in_set(node.is_history,#{isHistory})
+                            </if>
+                            <if test="userId != null">
+                                and find_in_set(node.role_user_id,#{userId})
+                            </if>
+                            <if test="isTaskLeader != null">
+                                and find_in_set(node.is_task_leader,#{isTaskLeader})
+                            </if>
+                            <if test="isTaskDesigner != null">
+                                and find_in_set(node.is_task_designer,#{isTaskDesigner})
+                            </if>
+                            <if test="isTaskChecker != null">
+                                and find_in_set(node.is_task_checker,#{isTaskChecker})
+                            </if>
+                            <if test="isTaskAuditor != null">
+                                and find_in_set(node.is_task_auditor,#{isTaskAuditor})
+                            </if>
+                            <if test="roleAttr != null">
+                                <![CDATA[and ((conv(node.role_attr_str,2,10) & conv(#{roleAttr},2,10)) > 0)]]>
+                            </if>
+                        </where>
+                        group by node.id
+                    ) node_with_role
+                    left join md_history ca_history on (ca_history.main_file_id =
+                        substring(ifnull(node_with_role.main_file_id,node_with_role.id),1,32)
+                        and ca_history.is_ca = 1)
+                    order by node_with_role.id,ca_history.create_time desc
+                ) node_with_ca
+                group by node_with_ca.id
+            ) node_with_ca_single
+            left join md_history commit_history on (commit_history.main_file_id =
+                substring(ifnull(node_with_ca_single.main_file_id,node_with_ca_single.id),1,32)
+                and commit_history.is_commit = 1)
+            order by node_with_ca_single.id,commit_history.create_time desc
+        ) node_with_commit
+        group by node_with_commit.id
+    </select>
+
+    
+    <resultMap id="SummaryFileCompanyMap" type="com.maoding.storage.zeroc.SummaryFileCompanyDTO" autoMapping="true">
+        <id property="companyId" column="company_id"/>
+        <collection property="serverList" ofType="com.maoding.storage.zeroc.SummaryFileServerDTO" fetchType="eager" autoMapping="true"/>
+    </resultMap>
+
+    <select id="summaryFile" resultMap="SummaryFileCompanyMap" parameterType="com.maoding.storage.zeroc.QuerySummaryDTO" >
+        select
+            file_summary.company_user_company_id as company_id,
+            sky_summary.total_size as alloc_size,
+            file_summary.server_type_id,
+            file_summary.server_address,
+            file_summary.base_dir,
+            sum(if(file_summary.writable_key is null,file_summary.file_length,file_summary.file_length * 2)) as usage_size
+        from (
+            select
+                company_user.company_id as company_user_company_id,
+                file_list.*
+            from
+                maoding_web_company_user company_user
+                left join md_list_storage_file file_list on ((file_list.deleted = 0)
+                    and (file_list.company_id = company_user.company_id)
+                    and (file_list.file_length > 0)
+                    <if test="serverTypeId != null and serverTypeId != ''.toString()">
+                        and (find_in_set(file_list.server_type_id,#{serverTypeId}))
+                    </if>
+                    <if test="notServerTypeId != null and notServerTypeId != ''.toString()">
+                        and (not find_in_set(file_list.server_type_id,#{notServerTypeId}))
+                    </if>
+                    <if test="serverAddress != null and serverAddress != ''.toString()">
+                        and (find_in_set(file_list.server_address,#{serverAddress}))
+                    </if>
+                    <if test="baseDir != null and baseDir != ''.toString()">
+                        and (find_in_set(file_list.base_dir,#{baseDir}))
+                    </if>
+                    )
+            <where>
+                company_user.audit_status = '1'
+                <if test="accountId != null and accountId != ''.toString()">
+                    and (find_in_set(company_user.user_id,#{accountId}))
+                </if>
+                <if test="companyId != null and companyId != ''.toString()">
+                    and (find_in_set(company_user.company_id,#{companyId}))
+                </if>
+            </where>
+            group by company_user.company_id,file_list.id
+            ) file_summary
+            left join maoding_corp_company_disk sky_summary on (sky_summary.company_id = file_summary.company_user_company_id)
+        group by file_summary.company_user_company_id,file_summary.server_type_id,file_summary.server_address,file_summary.base_dir
+    </select>
+
+    <select id="listNodeFile" resultType="com.maoding.storage.zeroc.NodeFileDTO" parameterType="com.maoding.storage.zeroc.QueryNodeFileDTO">
+        select * from md_file file
+        <where>
+            <if test="id != null">
+                and find_in_set(file.id,#{id})
+            </if>
+            <if test="serverTypeId != null">
+                and (find_in_set(file.server_type_id,#{serverTypeId})
+                  or find_in_set(file.mirror_server_type_id,#{serverTypeId}))
+            </if>
+            <if test="serverAddress != null">
+                and (find_in_set(file.server_address,#{serverAddress})
+                  or find_in_set(file.mirror_server_address,#{serverAddress}))
+            </if>
+            <if test="baseDir != null">
+                and (find_in_set(file.base_dir,#{baseDir})
+                  or find_in_set(file.mirror_base_dir,#{baseDir}))
+            </if>
+            <if test="key != null">
+                and (find_in_set(file.read_only_key,#{key})
+                  or find_in_set(file.writable_key,#{key})
+                  or find_in_set(file.read_only_mirror_key,#{key})
+                  or find_in_set(file.writable_mirror_key,#{key}))
+            </if>
+        </where>
+    </select>
+
+    <resultMap id="FileDetailMap" type="com.maoding.storage.zeroc.FullNodeDTO" autoMapping="true" >
+        <association property="textInfo" javaType="com.maoding.storage.zeroc.NodeTextDTO" autoMapping="true" fetchType="eager"/>
+        <association property="fileInfo" javaType="com.maoding.storage.zeroc.NodeFileDTO" autoMapping="true" fetchType="eager">
+            <id column="file_id" property="id"/>
+        </association>
+        <collection property="historyList" ofType="com.maoding.storage.zeroc.HistoryDTO" autoMapping="true" fetchType="eager">
+            <id column="history_id" property="id"/>
+            <result column="history_action_user_id" property="userId"/>
+            <result column="history_action_type_id" property="actionTypeId"/>
+            <result column="history_remark" property="remark"/>
+            <result column="history_action_user_name" property="userName"/>
+            <result column="history_action_name" property="actionName"/>
+        </collection>
+    </resultMap>
+
+    <select id="getNodeDetailByNodeId" resultMap="FileDetailMap" parameterType="java.util.Map">
+        select
+            storage_tree.path as storage_path
+            <if test="request != null">
+                <if test="request.textQuery != null">
+                    ,company.company_name
+                    ,company.id as company_id
+                    ,project.project_name
+                    ,task.issue_name
+                    ,task.issue_path
+                    ,task.task_name
+                    ,task.task_path
+                    ,account.user_name as owner_name
+                    <if test="request.textQuery.isQueryTypeName != null and request.textQuery.isQueryTypeName != 0">
+                        ,range_type.type_name as range_name
+                    </if>
+                </if>
+                <if test="request.fileQuery != null">
+                    ,file.id as file_id
+                    ,file.file_type_id
+                    ,file.file_version
+                    ,file.file_checksum
+                    ,file.major_type_id
+                    ,file.main_file_id
+                    ,file.server_type_id
+                    ,file.server_address
+                    ,file.base_dir
+                    ,file.read_only_key
+                    ,file.writable_key
+                    ,file.is_pass_check
+                    ,file.is_pass_audit
+                    <if test="request.fileQuery.mirrorServerTypeId != null">
+                        ,mirror.read_only_key as read_only_mirror_key
+                        ,mirror.writable_key as writable_mirror_key
+                    </if>
+                </if>
+                <if test="request.historyQuery != null">
+                    ,his.id as history_id
+                    ,his.last_modify_user_id as history_action_user_id
+                    ,his.action_type_id as history_action_type_id
+                    ,his.remark as history_remark
+                    ,his_account.user_name as history_action_user_name
+                    ,his_action_type.type_name as history_action_name
+                </if>
+            </if>
+        from
+        <choose>
+            <when test="request != null">
+                <choose>
+                    <when test="request.textQuery != null">
+                        md_node node
+                        left join md_tree_storage storage_tree on (storage_tree.id = substring(node.id,1,32))
+                        left join maoding_web_company company on (node.prepare_company_id = company.id)
+                        left join maoding_web_project project on (node.project_id = project.id)
+                        left join md_web_task task on (node.task_id = task.id)
+                        left join maoding_web_account account on (node.owner_user_id = account.id)
+                        <if test="request.textQuery.isQueryTypeName != null and request.textQuery.isQueryTypeName != 0">
+                            left join md_type_range range_type on (range_type.type_id = node.range_id)
+                        </if>
+                    </when>
+                    <otherwise>
+                        md_tree_storage storage_tree
+                    </otherwise>
+                </choose>
+                <if test="request.fileQuery != null">
+                    left join md_list_storage_file file on (storage_tree.id = file.id)
+                    <if test="request.fileQuery.mirrorServerTypeId != null">
+                        left join md_list_storage_file mirror on (mirror.deleted = 0
+                                and mirror.main_file_id = file.id
+                                and mirror.server_type_id = #{request.fileQuery.mirrorServerTypeId}
+                            <if test="request.fileQuery.mirrorServerAddress != null">
+                                and mirror.server_address = #{request.fileQuery.mirrorServerAddress}
+                            </if>
+                            <if test="request.fileQuery.mirrorBaseDir != null">
+                                and mirror.base_dir = #{request.fileQuery.mirrorBaseDir}
+                            </if>
+                        )
+                    </if>
+                </if>
+                <if test="request.historyQuery != null">
+                    left join md_list_storage_file_his his on (his.main_file_id = storage_tree.id
+                            <if test="request.historyQuery.historyStartTimeStamp != null and request.historyQuery.historyStartTimeStamp > 0">
+                                and his.last_modify_time >= #{request.historyQuery.historyStartTimeStamp}
+                            </if>
+                            <if test="request.historyQuery.historyEndTimeStamp != null and request.historyQuery.historyEndTimeStamp > 0">
+                                and #{request.historyQuery.historyStartTimeStamp} >= his.last_modify_time
+                            </if>
+                            )
+                    left join maoding_web_account his_account on (his.last_modify_user_id = his_account.id)
+                    left join md_type_action his_action_type on (his.action_type_id = his_action_type.type_id)
+                </if>
+            </when>
+            <otherwise>
+                md_tree_storage storage_tree
+            </otherwise>
+        </choose>
+        <where>
+            <if test="id != null">
+                <choose>
+                    <when test="request != null and request.textQuery != null">
+                        (node.id = #{id})
+                    </when>
+                    <otherwise>
+                        (storage_tree.deleted = 0) and (storage_tree.id = substring(#{id},1,32))
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        limit 1
+    </select>
+
+    <select id="listWebArchiveDir" resultType="com.maoding.storage.zeroc.SimpleNodeDTO" parameterType="com.maoding.storage.zeroc.QueryNodeDTO">
+        select distinct node.*
+        from md_node_sky_drive node
+        <include refid="ProjectMemberTable"/>
+        <where>
+            <include refid="QueryForNodeAll"/>
+            <if test="fuzzyId != null">
+                and (#{fuzzyId} like concat(node.project_id,",",
+                        if(node.company_id is null,"",concat(node.company_id)),
+                        '%'))
+            </if>
+        </where>
+        <if test="fuzzyPath != null or fuzzyId != null">
+            order by (length(replace(node.path,'/','//')) - length(node.path)) desc
+                ,node.project_id,node.company_id,node.issue_id,node.task_id
+            limit 1
+        </if>
+    </select>
+
+    <sql id="listNodeSQL">
+        <if test="issueId == null or issueId == ''.toString()">
+            select
+                <include refid="ExtraFieldForNodeProject"/>
+                node.*
+            from md_node_project node
+                <include refid="ProjectMemberTable"/>
+                <include refid="TextTableForNodeProject"/>
+            <where>
+                <include refid="QueryForNodeProject"/>
+            </where>
+            group by node.id
+
+            union all
+
+            select
+                <include refid="ExtraFieldForNodeRange"/>
+                node.*
+            from md_node_range node
+                <include refid="ProjectMemberTable"/>
+                <include refid="TextTableForNodeRange"/>
+            <where>
+                <include refid="QueryForNodeRange"/>
+            </where>
+            group by node.id
+
+            union all
+        </if>
+
+        select
+            <include refid="ExtraFieldForNodeTask"/>
+        node.*
+        from md_node_task node
+            <include refid="ProjectMemberTable"/>
+            <include refid="TextTableForNodeTask"/>
+        <where>
+            <include refid="QueryForNodeTask"/>
+        </where>
+        group by node.id
+
+        union all
+
+        select
+            <include refid="ExtraFieldForNodeStorage"/>
+            node.*
+        from md_node_storage node
+            <include refid="ProjectMemberTable"/>
+            <include refid="TextTableForNodeStorage"/>
+        <where>
+            <include refid="QueryForNodeStorage"/>
+        </where>
+        group by node.id
+    </sql>
+
+    <select id="listNode" resultType="com.maoding.storage.zeroc.SimpleNodeDTO" parameterType="com.maoding.storage.zeroc.QueryNodeDTO">
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            select * from (
+        </if>
+            <include refid="listNodeSQL"/>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            ) x
+            order by (length(replace(x.path,'/','//')) - length(x.path)) desc
+        </if>
+        <if test="onlyOne != null and onlyOne != ''.toString()">
+            limit 1
+        </if>
+    </select>
+
+    <sql id="ExtraFieldForFile">
+        <if test="(needPath != null and needPath != ''.toString())">
+            concat(ifnull(concat('/',project.project_name),''),
+            ifnull(concat('/',node.range_name),''),
+            ifnull(concat('/',task.path),''),
+            '/',node.storage_path) as path,
+        </if>
+        <if test="(needProjectName != null and needProjectName != ''.toString())">
+            project.project_name,
+        </if>
+        <if test="(needTaskName != null and needTaskName != ''.toString())">
+            task.task_name,
+        </if>
+        <if test="(needTaskPath != null and needTaskPath != ''.toString())">
+            task.path as task_path,
+        </if>
+        <if test="(needOwnerName != null and needOwnerName != ''.toString())">
+            file_owner.user_name as owner_name,
+        </if>
+        <if test="(needCompanyName != null and needCompanyName != ''.toString())">
+            file_company.company_name,
+        </if>
+        <if test="(needMainFileInfo != null and needMainFileInfo != ''.toString())">
+            main_file.server_type_id as main_server_type_id,
+            main_file.server_address as main_server_address,
+            main_file.base_dir as main_base_dir,
+            main_file.file_type_id as main_file_type_id,
+            main_file.read_only_key as main_read_only_key,
+            main_file.writable_key as main_writable_key,
+        </if>
+        <if test="(needFileHistoryInfo != null and needFileHistoryInfo != ''.toString())">
+            ca_history.file_length as last_file_length,
+            ca_history.file_md5 as last_file_md5,
+            commit_history.file_length as last_commit_file_length,
+            commit_history.file_md5 as last_commit_file_md5,
+        </if>
+    </sql>
+
+    <sql id="QueryForFile">
+        <!-- 节点信息 -->
+        <if test="(id != null and id != ''.toString())
+                or (fuzzyId != null and fuzzyId != ''.toString())
+                or (name != null and name != ''.toString())
+                or (fuzzyName != null and fuzzyName != ''.toString())
+                or (pid != null and pid != ''.toString())
+                or (typeId != null and typeId != ''.toString())
+                or (notTypeId != null and notTypeId != ''.toString())
+                or (projectId != null and projectId != ''.toString())
+                or (notProjectId != null and notProjectId != ''.toString())
+                or (rangeId != null and rangeId != ''.toString())
+                or (notRangeId != null and notRangeId != ''.toString())
+                or (taskId != null and taskId != ''.toString())
+                or (notTaskId != null and notTaskId != ''.toString())
+                or (nodeTypeAttr != null and nodeTypeAttr != ''.toString())
+                or (directoryMode != null and directoryMode != ''.toString())
+                or (designMode != null and designMode != ''.toString())
+                or (caMode != null and caMode != ''.toString())
+                or (commitMode != null and commitMode != ''.toString())
+                or (historyMode != null and historyMode != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (accountId != null and accountId != ''.toString())
+                or (roleAttr != null and roleAttr != ''.toString())
+                or (isTaskLeader != null and isTaskLeader != ''.toString())
+                or (isTaskDesigner != null and isTaskDesigner != ''.toString())
+                or (isTaskChecker != null and isTaskChecker != ''.toString())
+                or (isTaskAuditor != null and isTaskAuditor != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needTaskName != null and needTaskName != ''.toString())
+                or (needTaskPath != null and needTaskPath != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needRoleInfo != null and needRoleInfo != ''.toString())
+        ">
+            <include refid="QueryForNodeStorage"/>
+        </if>
+        <!-- 文件信息 -->
+        <if test="fileId != null and fileId != ''.toString()">
+            and ((file.is_mirror = 0 and find_in_set(file.id,#{fileId}))
+                or (file.is_mirror != 0 and find_in_set(file.main_file_id,#{fileId})))
+        </if>
+        <if test="companyId != null and companyId != ''.toString()">
+            and find_in_set(file.company_id,#{companyId})
+        </if>
+        <if test="notCompanyId != null and notCompanyId != ''.toString()">
+            and not find_in_set(file.company_id,#{notCompanyId})
+        </if>
+        <if test="ownerUserId != null and ownerUserId != ''.toString()">
+            and find_in_set(file.owner_user_id,#{ownerUserId})
+        </if>
+        <if test="notOwnerUserId != null and notOwnerUserId != ''.toString()">
+            and not find_in_set(file.owner_user_id,#{notOwnerUserId})
+        </if>
+        <if test="lastModifyRoleId != null and lastModifyRoleId != ''.toString()">
+            and find_in_set(file.last_modify_user_id,#{lastModifyRoleId})
+        </if>
+        <if test="notLastModifyRoleId != null and notLastModifyRoleId != ''.toString()">
+            and not find_in_set(file.last_modify_user_id,#{notLastModifyRoleId})
+        </if>
+        <if test="serverTypeId != null and serverTypeId != ''.toString()">
+            and find_in_set(file.server_type_id,#{serverTypeId})
+        </if>
+        <if test="serverAddress != null and serverAddress != ''.toString()">
+            and find_in_set(file.server_address,#{serverAddress})
+        </if>
+        <if test="baseDir != null and baseDir != ''.toString()">
+            and find_in_set(file.base_dir,#{baseDir})
+        </if>
+        <if test="key != null and key != ''.toString()">
+            and (find_in_set(file.read_only_key,#{key}) or find_in_set(file.writable_key,#{key}))
+        </if>
+        <if test="statusAttr != null and statusAttr != ''.toString()">
+            <![CDATA[and ((conv(file.status,2,10) & conv(#{statusAttr},2,10)) > 0)]]>
+        </if>
+        <if test="passDesign != null and passDesign != ''.toString()">
+            and find_in_set(file.pass_design,#{passDesign})
+        </if>
+        <if test="passCheck != null and passCheck != ''.toString()">
+            and find_in_set(file.pass_check,#{passCheck})
+        </if>
+        <if test="passAudit != null and passAudit != ''.toString()">
+            and find_in_set(file.pass_audit,#{passAudit})
+        </if>
+        <if test="isMirror != null and isMirror != ''.toString()">
+            and find_in_set(file.is_mirror,#{isMirror})
+        </if>
+    </sql>
+
+    <sql id="TableForFile">
+        <if test="(needCompanyName != null and needCompanyName != ''.toString())
+                or (fuzzyCompanyName != null and fuzzyCompanyName != ''.toString())
+        ">
+            inner join maoding_web_company file_company on (file_company.status = '0' and file_company.id = file.company_id)
+        </if>
+        <if test="(lastModifyUserName != null and lastModifyUserName != ''.toString())
+                or (fuzzyLastModifyUserName != null and fuzzyLastModifyUserName != ''.toString())
+                or (needLastModifyUserName != null and needLastModifyUserName != ''.toString())
+        ">
+            inner join maoding_web_account file_last_modifier on (file_last_modifier.status = '0' and file_last_modifier.id = file.owner_user_id)
+        </if>
+        <if test="(id != null and id != ''.toString())
+                or (fuzzyId != null and fuzzyId != ''.toString())
+                or (name != null and name != ''.toString())
+                or (fuzzyName != null and fuzzyName != ''.toString())
+                or (pid != null and pid != ''.toString())
+                or (typeId != null and typeId != ''.toString())
+                or (notTypeId != null and notTypeId != ''.toString())
+                or (projectId != null and projectId != ''.toString())
+                or (notProjectId != null and notProjectId != ''.toString())
+                or (rangeId != null and rangeId != ''.toString())
+                or (notRangeId != null and notRangeId != ''.toString())
+                or (taskId != null and taskId != ''.toString())
+                or (notTaskId != null and notTaskId != ''.toString())
+                or (nodeTypeAttr != null and nodeTypeAttr != ''.toString())
+                or (directoryMode != null and directoryMode != ''.toString())
+                or (designMode != null and designMode != ''.toString())
+                or (caMode != null and caMode != ''.toString())
+                or (commitMode != null and commitMode != ''.toString())
+                or (historyMode != null and historyMode != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (accountId != null and accountId != ''.toString())
+                or (roleAttr != null and roleAttr != ''.toString())
+                or (isTaskLeader != null and isTaskLeader != ''.toString())
+                or (isTaskDesigner != null and isTaskDesigner != ''.toString())
+                or (isTaskChecker != null and isTaskChecker != ''.toString())
+                or (isTaskAuditor != null and isTaskAuditor != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needTaskName != null and needTaskName != ''.toString())
+                or (needTaskPath != null and needTaskPath != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needRoleInfo != null and needRoleInfo != ''.toString())
+        ">
+            inner join md_node_storage node on ((file.is_mirror = 0 and node.storage_id = file.id)
+                or (file.is_mirror != 0 and node.storage_id = file.main_file_id))
+            <include refid="ProjectMemberTable"/>
+        </if>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (needCompanyName != null and needCompanyName != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (needCompanyId != null and needCompanyId != ''.toString())
+                or (companyId != null and companyId != ''.toString())
+                or (notCompanyId != null and notCompanyId != ''.toString())">
+            left join md_web_task task on (task.id = node.task_id)
+        </if>
+        <if test="(needPath != null and needPath != ''.toString())
+                or (needProjectName != null and needProjectName != ''.toString())
+                or (needIssueId != null and needIssueId != ''.toString())
+                or (needIssuePath != null and needIssuePath != ''.toString())
+                or (needDesignTaskPath != null and needDesignTaskPath != ''.toString())
+                or (path != null and path != ''.toString())
+                or (parentPath != null and parentPath != ''.toString())
+                or (fuzzyPath != null and fuzzyPath != ''.toString())
+                or (issueId != null and issueId != ''.toString())
+                or (projectName != null and projectName != ''.toString())
+                or (fuzzyProjectName != null and fuzzyProjectName != ''.toString())
+                or (needCompanyId != null and needCompanyId != ''.toString())
+                or (companyId != null and companyId != ''.toString())
+                or (notCompanyId != null and notCompanyId != ''.toString())
+                or (needCompanyName != null and needCompanyName != ''.toString())
+                or (needTaskPath != null and needTaskPath != ''.toString())
+                or (needTaskName != null and needTaskName != ''.toString())">
+            left join maoding_web_project project on (project.pstatus = '0' and project.id = ifnull(node.project_id,task.project_id))
+        </if>
+        <if test="(needMainFileInfo != null and needMainFileInfo != ''.toString())">
+            left join md_list_storage_file main_file on (main_file.deleted = 0 and main_file.id = file.main_file_id)
+        </if>
+        <if test="(needFileHistoryInfo != null and needFileHistoryInfo != ''.toString())">
+            left join md_history ca_history on (ca_history.is_ca = 1
+                and ca_history.main_file_id = ifnull(file.main_file_id,file.id))
+            left join md_history commit_history on (commit_history.is_commit = 1
+                and commit_history.main_file_id = ifnull(file.main_file_id,file.id))
+        </if>
+        <if test="(needOwnerName != null and needOwnerName != ''.toString())
+                or (fuzzyOwnerName != null and fuzzyOwnerName != ''.toString())
+        ">
+            left join maoding_web_account file_owner on (file_owner.status = '0' and file_owner.id = file.owner_user_id)
+        </if>
+    </sql>
+
+    <sql id="listFileSQL">
+        select
+            <include refid="ExtraFieldForFile"/>
+            file.*
+        from md_file file
+            <include refid="TableForFile"/>
+        <where>
+            <include refid="QueryForFile"/>
+        </where>
+        group by file.id
+    </sql>
+
+    <select id="listFile" resultType="com.maoding.storage.zeroc.NodeFileDTO" parameterType="com.maoding.storage.zeroc.QueryNodeDTO">
+        <choose>
+            <when test="id == '-'.toString()">
+                select null
+            </when>
+            <when test="(needFileHistoryInfo != null and needFileHistoryInfo != ''.toString())">
+                select file_with_his.* from (
+                    select
+                        <include refid="ExtraFieldForFile"/>
+                        file.*
+                    from md_file file
+                        <include refid="TableForFile"/>
+                    <where>
+                        <include refid="QueryForFile"/>
+                    </where>
+                    order by file.id,ca_history.create_time desc,commit_history.create_time desc
+                ) file_with_his
+                group by file_with_his.id
+                <if test="onlyOne != null and onlyOne != ''.toString()">
+                    limit 1
+                </if>
+            </when>
+            <otherwise>
+                select
+                    <include refid="ExtraFieldForFile"/>
+                    file.*
+                from md_file file
+                    <include refid="TableForFile"/>
+                <where>
+                    <include refid="QueryForFile"/>
+                </where>
+                group by file.id
+                <if test="onlyOne != null and onlyOne != ''.toString()">
+                    limit 1
+                </if>
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="listHistory" resultType="com.maoding.storage.zeroc.HistoryDTO" parameterType="com.maoding.storage.zeroc.QueryHistoryDTO">
+        <choose>
+            <when test="mainFileId == '-'.toString()">
+                select null
+            </when>
+            <otherwise>
+                select his.* from md_list_storage_file_his his where his.main_file_id = #{mainFileId}
+            </otherwise>
+        </choose>
+    </select>
+
+    <resultMap id="FullNodeMap" type="com.maoding.storage.zeroc.FullNodeDTO" autoMapping="true" >
+        <association property="basic" javaType="com.maoding.storage.zeroc.SimpleNodeDTO" autoMapping="true" fetchType="eager"/>
+        <association property="textInfo" javaType="com.maoding.common.zeroc.StringElementDTO" autoMapping="true" fetchType="eager"/>
+        <association property="fileInfo" javaType="com.maoding.storage.zeroc.NodeFileDTO"
+                     select="listFile" column="{id=fileId,needMainFileInfo=needMainFileInfo,onlyOne=onlyOne,isMirror=isMirror}"
+                     autoMapping="true" fetchType="eager"/>
+        <collection property="historyList" ofType="com.maoding.storage.zeroc.HistoryDTO"
+                    select="listHistory" column="{mainFileId=historyMainFileId}"
+                    autoMapping="true" fetchType="eager"/>
+    </resultMap>
+
+    <select id="listFullNode" resultMap="FullNodeMap" parameterType="com.maoding.storage.zeroc.QueryNodeDTO">
+        select
+            <choose>
+                <when test="needFileInfo != null and needFileInfo != ''.toString()">
+                    x.id as fileId,
+                </when>
+                <otherwise>
+                    '-' as fileId,
+                </otherwise>
+            </choose>
+            '1' as onlyOne,
+            '0' as isMirror,
+            #{needMainFileInfo} as needMainFileInfo,
+            <choose>
+                <when test="needFileHistoryInfo != null and needFileHistoryInfo != ''.toString()">
+                    x.storage_id as historyMainFileId,
+                </when>
+                <otherwise>
+                    '-' as historyMainFileId,
+                </otherwise>
+            </choose>
+            x.*
+        from (
+            <include refid="listNodeSQL"/>
+        ) x
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            order by (length(replace(x.path,'/','//')) - length(x.path)) desc
+        </if>
+        <if test="onlyOne != null and onlyOne != ''.toString()">
+            limit 1
+        </if>
+    </select>
+
+    <resultMap id="FileWithBasicMap" type="com.maoding.storage.zeroc.FileNodeDTO">
+        <association property="basic" javaType="com.maoding.storage.zeroc.SimpleNodeDTO" fetchType="eager"/>
+    </resultMap>
+
+    <resultMap id="FileWithBasicHistoryMap" type="com.maoding.storage.zeroc.FileNodeDTO">
+        <association property="basic" javaType="com.maoding.storage.zeroc.SimpleNodeDTO" fetchType="eager"/>
+        <collection property="historyList" ofType="com.maoding.storage.zeroc.HistoryDTO" autoMapping="true" fetchType="eager">
+            <id column="history_id"/>
+        </collection>
+    </resultMap>
+
+
+    <resultMap id="FileWithHistoryMap" type="com.maoding.storage.zeroc.FileNodeDTO">
+        <collection property="historyList" ofType="com.maoding.storage.zeroc.HistoryDTO" fetchType="eager">
+            <id column="history_id"/>
+        </collection>
+    </resultMap>
+
+
+    <resultMap id="StorageEntityUnionMap" type="com.maoding.storage.dto.StorageEntityUnionDTO">
+        <association property="fileEntity" select="selectFileEntity" column="{id=id}" fetchType="eager"/>
+        <association property="hisEntity" select="selectHisEntity" column="{id=id}" fetchType="eager"/>
+    </resultMap>
+
+    <select id="selectStorageEntityUnion" resultMap="StorageEntityUnionMap" parameterType="com.maoding.storage.zeroc.QueryNodeDTO">
+        select storage_tree.*
+        from md_tree_storage storage_tree
+          <if test="path != null or fuzzyPath != null or parentPath != null or projectId != null or rangeId != null or issueId != null or companyId != null">
+            left join md_type_range range_type on (find_in_set(storage_tree.type_id,range_type.sub_node_type))
+            left join md_web_task task on (storage_tree.task_id = task.id)
+          </if>
+        where (storage_tree.deleted = 0)
+            <if test="id != null">
+                and (storage_tree.id = substring(#{id},1,32))
+            </if>
+            <if test="pid != null">
+                and (storage_tree.pid = substring(#{pid},1,32))
+            </if>
+            <if test="path != null">
+                and (concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path) = #{path})
+            </if>
+            <if test="typeId != null">
+                and (storage_tree.type_id = #{typeId})
+            </if>
+            <if test="projectId != null">
+                and (task.project_id = #{projectId})
+            </if>
+            <if test="rangeId != null">
+                and (range_type.value_id = #{rangeId})
+            </if>
+            <if test="issueId != null">
+                and (task.issue_id = #{issueId})
+            </if>
+            <if test="taskId != null">
+                and (storage_tree.task_id = #{taskId})
+            </if>
+            <if test="companyId != null">
+                and (task.company_id = #{companyId})
+            </if>
+            <if test="ownerUserId != null">
+                and (storage_tree.owner_user_id = #{ownerUserId})
+            </if>
+            <if test="fuzzyPath != null">
+                and (concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path) = #{fuzzyPath}
+                    or #{fuzzyPath} like concat(concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path),'/%'))
+            </if>
+            <if test="parentPath != null">
+                and (concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path) like concat(#{parentPath},'/%'))
+            </if>
+        <if test="fuzzyPath != null">
+            order by (length(replace(concat(concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path)),'/','//'))
+                  - length(concat(concat('/',task.project_name,'/',range_type.content,'/',task.path,'/',storage_tree.path)))) desc
+        </if>
+        limit 1
+    </select>
+
+
+    <select id="selectFileEntity" resultType="com.maoding.storage.entity.StorageFileEntity" parameterType="java.util.Map">
+        select
+            <choose>
+                <when test="mainFileId != null">
+                    mirror.*
+                </when>
+                <otherwise>
+                    file.*
+                </otherwise>
+            </choose>
+        from md_list_storage_file file
+            <if test="mainFileId != null">
+                left join md_list_storage_file mirror on (
+                    mirror.file_type_id = 22
+                    and mirror.main_file_id = file.id
+                    <if test="mirrorServerTypeId != null">
+                        and mirror.server_type_id = #{mirrorServerTypeId}
+                    </if>
+                    <if test="mirrorServerAddress != null">
+                        and mirror.server_address = #{mirrorServerAddress}
+                    </if>
+                    <if test="mirrorBaseDir != null">
+                        and mirror.base_dir = #{mirrorBaseDir}
+                    </if>
+                )
+            </if>
+        <where>
+            <if test="id != null">
+                and file.id = #{id}
+            </if>
+            <if test="mainFileId != null">
+                and file.id = #{mainFileId}
+            </if>
+        </where>
+        limit 1
+    </select>
+
+    <select id="selectHisEntity" resultType="com.maoding.storage.entity.StorageFileHisEntity" parameterType="java.util.Map">
+        select his.* from md_list_storage_file_his his where his.id = #{id}
+    </select>
+
+</mapper>

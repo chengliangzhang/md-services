@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.user.dao.RoleDao">
+    <sql id="ConditionForQueryWebRole">
+        <if test="attrStr != null and attrStr != ''.toString()">
+            and find_in_set(web_role.attr_str,#{attrStr})
+        </if>
+        <if test="typeId != null and typeId != ''.toString()">
+            and find_in_set(web_role.type_id,#{typeId})
+        </if>
+        <if test="userId != null and userId != ''.toString()">
+            and find_in_set(web_role.user_id,#{userId})
+        </if>
+        <if test="taskId != null and taskId != ''.toString()">
+            and find_in_set(web_role.task_id,#{taskId})
+        </if>
+        <if test="roleId != null and roleId != ''.toString()">
+            and find_in_set(web_role.role_type,#{roleId})
+        </if>
+
+        <if test="id != null and id != ''.toString()">
+            and find_in_set(web_role.id,#{id})
+        </if>
+        <if test="startTimeStamp > 0">
+            and (web_role.last_modify_time >= #{startTimeStamp})
+        </if>
+        <if test="endTimeStamp > 0">
+            and (#{endTimeStamp} >= web_role.last_modify_time)
+        </if>
+    </sql>
+
+    <select id="listWebRole" resultType="com.maoding.user.zeroc.WebRoleDTO" parameterType="com.maoding.user.zeroc.QueryWebRoleDTO">
+        select web_role.*,
+        unix_timestamp(ifnull(task.start_time,0)) as task_start_time_stamp,
+        date_format(task.start_time,'%Y/%m/%d') as task_start_time_text,
+        unix_timestamp(ifnull(task.end_time,0)) as task_end_time_stamp,
+        date_format(task.end_time,'%Y/%m/%d') as task_end_time_text
+        from md_web_role_task web_role
+        inner join maoding_web_project_task task on (task.id = web_role.task_id)
+        <if test="accountId != null and accountId != ''.toString()">
+            inner join md_web_role_task team_role on (web_role.project_id = team_role.project_id and team.user_id = #{accountId})
+        </if>
+        <where>
+            <include refid="ConditionForQueryWebRole"/>
+        </where>
+        group by id
+    </select>
+
+
+    <resultMap id="TaskRoleMap" type="com.maoding.user.zeroc.TaskRoleDTO">
+        <result property="id" column="task_id"/>
+        <result property="name" column="task_name"/>
+        <collection property="taskRoleList" ofType="com.maoding.common.zeroc.IdNameDTO">
+            <result property="id" column="task_role_id"/>
+            <result property="name" column="task_role_name"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="ProjectRoleMap" type="com.maoding.user.zeroc.ProjectRoleDTO" autoMapping="true">
+        <collection property="projectRoleList" ofType="com.maoding.common.zeroc.IdNameDTO">
+            <result property="id" column="project_role_id"/>
+            <result property="name" column="project_role_name"/>
+        </collection>
+        <collection property="taskList" resultMap="TaskRoleMap"/>
+    </resultMap>
+
+    <select id="listProjectRoleByProjectId" resultMap="ProjectRoleMap" parameterType="java.util.Map">
+        select role.*
+            ,if(role.is_project_role,role.type_id,null) as project_role_id
+            ,if(role.is_project_role,role.type_name,null) as project_role_name
+            ,if(role.is_task_role,role.type_id,null) as task_role_id
+            ,if(role.is_task_role,role.type_name,null) as task_role_name
+        from md_web_role_project role
+        <where>
+            <if test="projectId != null">
+                and role.project_id = #{projectId}
+            </if>
+        </where>
+        group by role.user_id,role.task_id
+    </select>
+
+    <select id="listProject" resultType="com.maoding.common.zeroc.IdNameDTO" parameterType="java.util.Map">
+        select distinct role.project_id as id, role.project_name as name from md_web_role_project role
+        <where>
+            role.project_id is not null
+            <if test="userId != null">
+                and role.user_id = #{userId}
+            </if>
+        </where>
+    </select>
+    <select id="listTask" resultType="com.maoding.common.zeroc.IdNameDTO" parameterType="java.util.Map">
+        select distinct role.task_id as id, role.task_name as name from md_web_role_project role
+        <where>
+            role.task_id is not null
+            <if test="userId != null">
+                and role.user_id = #{userId}
+            </if>
+        </where>
+    </select>
+    <select id="listCompany" resultType="com.maoding.common.zeroc.IdNameDTO" parameterType="java.util.Map">
+        select distinct role.company_id as id, role.company_name as name from md_web_role_project role
+        <where>
+            role.company_id is not null
+            <if test="userId != null">
+                and role.user_id = #{userId}
+            </if>
+        </where>
+    </select>
+
+    <select id="listMember" resultType="com.maoding.common.zeroc.IdNameDTO" parameterType="com.maoding.user.zeroc.QueryMemberDTO">
+        select distinct role.user_id as id, role.user_name as name from md_web_role_project role
+        <where>
+            <if test="userTypeIdString != null">
+                and (role.type_id in (#{userTypeIdString}))
+            </if>
+            <if test="projectId != null">
+                and (role.project_id = #{projectId})
+            </if>
+            <if test="taskId != null">
+                and (role.task_id = #{taskId})
+            </if>
+            <if test="companyId != null">
+                and (role.company_id = #{companyId})
+            </if>
+        </where>
+    </select>
+</mapper>

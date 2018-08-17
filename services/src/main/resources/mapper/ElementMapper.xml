@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.storage.dao.ElementDao">
+    <sql id="ConditionForQueryElement">
+        <if test="id != null and id != ''.toString()">
+            and find_in_set(element.id,#{id})
+        </if>
+        <if test="lastModifyUserId != null and lastModifyUserId != ''.toString()">
+            and find_in_set(element.last_modify_user_id,#{lastModifyUserId})
+        </if>
+        <if test="lastModifyRoleId != null and lastModifyRoleId != ''.toString()">
+            and find_in_set(element.last_modify_role_id,#{lastModifyRoleId})
+        </if>
+        <if test="startTimeStamp > 0">
+            and (element.last_modify_time >= #{startTimeStamp})
+        </if>
+        <if test="endTimeStamp > 0">
+            and (#{endTimeStamp} >= element.last_modify_time)
+        </if>
+    </sql>
+
+    <select id="listElement" resultType="com.maoding.storage.zeroc.EmbedElementDTO" parameterType="com.maoding.common.zeroc.QueryAskDTO">
+        select element.*
+        from
+            md_list_element element
+        <where>
+            <include refid="ConditionForQueryElement"/>
+        </where>
+    </select>
+
+</mapper>
