@@ -1,0 +1,167 @@
+# ===================================================================
+#
+#                         开发环境配置文件
+#
+# ===================================================================
+server:
+   port: 8088
+   context-path:
+spring:
+   mvc:
+     throw-exception-if-no-handler-found: true
+   resources:
+     add-mappings: true
+
+# ===================================================================
+# Druid
+# ===================================================================
+druid:
+#### 数据库地址
+    url: jdbc:mysql://127.0.0.1:3306/maoding_test #本机数据库
+#    url: jdbc:mysql://172.16.6.71:3306/maoding_qa #内网数据库
+#    url: jdbc:mysql://rm-wz93ulb0g6s0y3bi4o.mysql.rds.aliyuncs.com:3306/md_net #.net数据库
+#    url: jdbc:mysql://rm-wz93ulb0g6s0y3bi4o.mysql.rds.aliyuncs.com:3306/maoding_pord_v2 #.com数据库
+###############
+    username: idccapp
+    password: idccapp
+    driverClassName: com.mysql.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource   # 使用Druid数据源
+    initialSize: 5   # 初始化连接数量
+    maxActive: 10   # 最大并发连接数
+    minIdle: 1    # 最小空闲连接数
+    maxWait: 60000   # 配置获取连接等待超时的时间
+    removeAbandoned: true   # 超过时间限制是否回收
+    removeAbandonedTimeout: 180    # 超过时间限制多长
+    timeBetweenEvictionRunsMillis: 60000   # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+    minEvictableIdleTimeMillis: 300000   # 配置一个连接在池中最小生存的时间，单位是毫秒
+    validationQuery: select 'x'   # 用来检测连接是否有效的sql，要求是一个查询语句
+    testWhileIdle: true   # 申请连接的时候检测
+    testOnBorrow: false   # 申请连接时执行validationQuery检测连接是否有效，配置为true会降低性能
+    testOnReturn: false    # 归还连接时执行validationQuery检测连接是否有效，配置为true会降低性能
+    poolPreparedStatements: false    # 是否缓存preparedStatement，也就是PSCache。PSCache对支持游标的数据库性能提升巨大，比如说oracle。在mysql下建议关闭。
+    maxOpenPreparedStatements: 20
+    maxPoolPreparedStatementPerConnectionSize: 50
+    # 属性类型是字符串，通过别名的方式配置扩展插件，常用的插件有：
+    # 监控统计用的filter:stat
+    # 日志用的filter:log4j
+    # 防御SQL注入的filter:wall
+    filters: stat
+
+# ===================================================================
+# Mybatis
+# ===================================================================
+mybatis:
+    config-location: classpath:mybatis-config.xml
+    mapper-locations: classpath*:mapper/**/*.xml
+
+mapper:
+    mappers:
+        - com.maoding.coreBase.CoreDao
+    not-empty: false
+    identity: MYSQL
+
+# ===================================================================
+# 日志
+# ===================================================================
+logging:
+    config: classpath:logback-test.xml
+
+# ===================================================================
+# ICE 本机提供的ice服务和使用到的ice服务配置
+# ===================================================================
+ice:
+    config: c:/work/md-services-release/services/src/main/resources/properties/ice-config-test.properties # 本机服务配置文件
+    identify: devServer #本机特殊标记
+#### 程序内部使用服务
+#    commonConst: #常量服务
+#    storage: StorageService@TestServer;--Ice.Default.Locator=IceGrid/Locator:tcp -h 120.24.238.128 -p 4061 #存储节点服务
+#    file: #文件管理服务
+#    user: #用户管理服务
+#    notice: #消息通告服务
+#    topic: #消息主题服务
+
+# ===================================================================
+# WEB SERVICE：通过web服务调用其他服务的接口参数，在WebServiceConfig内处理
+#     部分任务需通过http协议调用其他服务，通过这些配置确定接口地址
+# ===================================================================
+webService:
+#### 卯丁web服务根地址
+    maodingWeb: http://192.168.1.74/maoding #74服务器地址
+#    maodingWeb: https://www.idccplus.com/maoding #测试地址
+#### file-center服务根地址
+#    fileCenter: https://www.imaoding.com/fileCenter #.com地址
+    fileCenter: https://192.168.1.74/fileCenter #74服务器地址
+
+
+# ===================================================================
+# FILE SERVER：文件服务器的存储类型、访问地址等配置，在FileServerConfig内处理
+# ===================================================================
+fileServer:
+    serverTypeId: #文件服务器类型
+    serverAddress: #文件服务器地址
+    baseDir: #文件服务器访问接口
+    mirrorBaseDir: #远程文件在此文件服务器上的镜像存储地址
+
+# ===================================================================
+# NOTICE SERVICE
+# ===================================================================
+notice:
+    topicAdapter: StormSvr;127.0.0.1
+    commonTopic: notify:web;im:account
+
+# ===================================================================
+# OSS 阿里云文件服务
+# ===================================================================
+aliyunoss:
+   endpoint: http://oss-cn-shenzhen.aliyuncs.com #endpoint是访问OSS的域名。如果您已经在OSS的控制台上 创建了Bucket，请在控制台上查看域名。
+   accessKeyId: LTAIK0pBab2SfZuU #accessKeyId和accessKeySecret是OSS的访问密钥，您可以在控制台上创建和查看，
+   accessKeySecret: K7DlkE7f74IAkg4zVcuqCsaBpHYkuS #accessKeyId和accessKeySecret是OSS的访问密钥，您可以在控制台上创建和查看，
+   idleConnectionTime: 10000
+
+# ===================================================================
+# ActiveMQ
+# ===================================================================
+activemq:
+    broker-url: tcp://172.16.6.73:61616?jms.prefetchPolicy.queuePrefetch=1
+    user:
+    password:
+
+# ===================================================================
+# Startup：启动任务配置，在StartupConfig内处理
+#     在启动程序时，需要首先执行一次的任务所需的参数
+# ===================================================================
+startup:
+    database: #升级数据库命令
+    activemq: #启动activemq服务命令
+    icegrid: c:/work/maoding-services/icestart.bat;c:/work/md-services-release/services/src/main/resources/properties/command-test.properties;icegridregistry #启动icegrid服务命令
+    icebox: c:/work/maoding-services/icestart.bat;c:/work/md-services-release/services/src/main/resources/properties/command-test.properties;icebox #启动icebox服务命令
+
+# ===================================================================
+# Schedule：定时任务配置，在StartupConfig内处理
+#    程序运行过程中，需要每隔一段时间自动执行的任务所需的参数
+# ===================================================================
+schedule:
+    poolSize: #启动计划任务时的线程个数
+    clearServer: false #是否自动清理文件服务器
+    autoUpdate: #是否自动升级
+    updateConfig: #自动升级时下载完最新版本后的更新脚本
+
+# ===================================================================
+# Buffer：缓存配置，在BufferConfig内处理
+#     缓存用于存储从数据库内读出的记录，目前只支持redis缓存
+# ===================================================================
+buffer:
+    useRedis: true #是否使用redis缓存
+    address: "192.168.1.74:6579" #缓存服务器地址
+    #### 缓存服务器登录信息
+    name:
+    password: "123456"
+    #### 缓存服务器管理信息
+    lockTime:
+
+# ===================================================================
+# project：本程序参数
+# ===================================================================
+project:
+    config: classpath:properties/app.properties #本程序参数存储文件
+    version: v2.0 #本程序手动设置版本

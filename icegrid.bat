@@ -1,0 +1,1 @@
+./icestart.bat ./services/src/main/resources/properties/command.properties icegridregistry

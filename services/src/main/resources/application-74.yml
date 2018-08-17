@@ -1,0 +1,131 @@
+# ===================================================================
+#
+#                         开发环境配置文件
+#
+# ===================================================================
+server:
+   port: 8088
+   context-path:
+spring:
+   mvc:
+     throw-exception-if-no-handler-found: true
+   resources:
+     add-mappings: true
+
+# ===================================================================
+# Druid
+# ===================================================================
+druid:
+    url: jdbc:mysql://192.168.1.253:3306/temp_comdb_v2
+    username: idccapp
+    password: idccapp
+    driverClassName: com.mysql.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource   # 使用Druid数据源
+    initialSize: 5   # 初始化连接数量
+    maxActive: 10   # 最大并发连接数
+    minIdle: 1    # 最小空闲连接数
+    maxWait: 60000   # 配置获取连接等待超时的时间
+    removeAbandoned: true   # 超过时间限制是否回收
+    removeAbandonedTimeout: 180    # 超过时间限制多长
+    timeBetweenEvictionRunsMillis: 60000   # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+    minEvictableIdleTimeMillis: 300000   # 配置一个连接在池中最小生存的时间，单位是毫秒
+    validationQuery: select 'x'   # 用来检测连接是否有效的sql，要求是一个查询语句
+    testWhileIdle: true   # 申请连接的时候检测
+    testOnBorrow: false   # 申请连接时执行validationQuery检测连接是否有效，配置为true会降低性能
+    testOnReturn: false    # 归还连接时执行validationQuery检测连接是否有效，配置为true会降低性能
+    poolPreparedStatements: false    # 是否缓存preparedStatement，也就是PSCache。PSCache对支持游标的数据库性能提升巨大，比如说oracle。在mysql下建议关闭。
+    maxOpenPreparedStatements: 20
+    maxPoolPreparedStatementPerConnectionSize: 50
+    # 属性类型是字符串，通过别名的方式配置扩展插件，常用的插件有：
+    # 监控统计用的filter:stat
+    # 日志用的filter:log4j
+    # 防御SQL注入的filter:wall
+    filters: stat
+    useSSL: false
+# ===================================================================
+# Mybatis
+# ===================================================================
+mybatis:
+    config-location: classpath:mybatis-config.xml
+    mapper-locations: classpath*:mapper/**/*.xml
+
+mapper:
+    mappers:
+         - com.maoding.coreBase.CoreDao
+    not-empty: false
+    identity: MYSQL
+
+# ===================================================================
+# 日志
+# ===================================================================
+logging:
+    config: classpath:logback-dev.xml
+
+# ===================================================================
+# ICE
+# ===================================================================
+ice:
+    config: /data/maoding-services/iceconfig/ice-config-74.properties
+
+# ===================================================================
+# WEB SERVICE
+# ===================================================================
+webService:
+    maodingWeb: http://192.168.1.74/maoding
+    fileCenter: http://192.168.1.74:8071/fileCenter
+
+# ===================================================================
+# FILE SERVER
+# ===================================================================
+#fileserver:
+#    type: 5
+#    storageServiceAdapter: StorageServer;39.108.169.202
+#    noticeServiceAdapter: NoticeServer;39.108.169.202
+
+# ===================================================================
+# NOTICE SERVICE
+# ===================================================================
+notice:
+    topicAdapter: StormSvr;192.168.1.74
+    commonTopic: notify:web;im:account
+
+# ===================================================================
+# OSS 阿里云文件服务
+# ===================================================================
+aliyunoss:
+   endpoint: http://oss-cn-shenzhen.aliyuncs.com #endpoint是访问OSS的域名。如果您已经在OSS的控制台上 创建了Bucket，请在控制台上查看域名。
+   accessKeyId: LTAIK0pBab2SfZuU #accessKeyId和accessKeySecret是OSS的访问密钥，您可以在控制台上创建和查看，
+   accessKeySecret: K7DlkE7f74IAkg4zVcuqCsaBpHYkuS #accessKeyId和accessKeySecret是OSS的访问密钥，您可以在控制台上创建和查看，
+   idleConnectionTime: 10000
+
+# ===================================================================
+# ActiveMQ
+# ===================================================================
+activemq:
+    broker-url: tcp://127.0.0.1:61616?jms.prefetchPolicy.queuePrefetch=1
+    user:
+    password:
+
+# ===================================================================
+# Startup 升级
+# ===================================================================
+startup:
+    database:  #升级数据 库时运行的命令行#
+    activemq:
+    icegrid: /data/maoding-services/icestart.sh;/data/maoding-services/iceconfig/command-74.properties;icegridregistry
+    icebox: /data/maoding-services/icestart.sh;/data/maoding-services/iceconfig/command-74.properties;icebox
+
+# ===================================================================
+# Schedule
+# ===================================================================
+schedule:
+    clearServer: false
+    autoUpdate: false
+
+# ===================================================================
+# Buffer
+# ===================================================================
+buffer:
+    useRedis: true
+    address: "192.168.1.74:6579"
+    password: "123456"

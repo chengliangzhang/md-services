@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.storage.dao.StorageTreeDao">
+    <select id="selectByTaskIdAndFuzzyPath" resultType="com.maoding.storage.entity.StorageTreeEntity" parameterType="java.util.Map">
+        select storage_tree.*
+        from md_tree_storage storage_tree
+        where (storage_tree.deleted = 0)
+          <if test="taskId != null">
+              and (storage_tree.task_id = #{taskId})
+          </if>
+          <if test="fuzzyPath != null">
+              and ((storage_tree.path = #{fuzzyPath}) or (#{fuzzyPath} like concat(storage_tree.path,'/%')))
+          </if>
+        order by (length(replace(storage_tree.path,'/','//')) - length(storage_tree.path)) desc
+        limit 1
+    </select>
+    <update id="updateTaskIdByPid" parameterType="java.util.Map">
+        update md_tree_storage father
+        left join md_tree_storage children on (children.deleted = 0
+              and children.task_id = father.task_id
+              and children.path like concat(father.path,'/%'))
+        set children.task_id = #{taskId}
+        where father.id = #{pid}
+    </update>
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.storage.dao.AnnotateDao">
+    <sql id="ConditionForQueryAnnotate">
+        <if test="statusId != null and statusId != ''.toString()">
+            and find_in_set(annotate.status_id,#{statusId})
+        </if>
+        <if test="fileId != null and fileId != ''.toString()">
+            and find_in_set(annotate.file_id,#{fileId})
+        </if>
+        <if test="mainFileId != null and mainFileId != ''.toString()">
+            and find_in_set(annotate.main_file_id,#{mainFileId})
+        </if>
+        <if test="anyFileId != null and anyFileId != ''.toString()">
+            and (find_in_set(annotate.file_id,#{anyFileId})
+                or find_in_set(annotate.main_file_id,#{anyFileId}))
+        </if>
+        <if test="id != null and id != ''.toString()">
+            and find_in_set(annotate.id,#{id})
+        </if>
+        <if test="lastModifyUserId != null and lastModifyUserId != ''.toString()">
+            and find_in_set(annotate.last_modify_user_id,#{lastModifyUserId})
+        </if>
+        <if test="lastModifyRoleId != null and lastModifyRoleId != ''.toString()">
+            and find_in_set(annotate.last_modify_role_id,#{lastModifyRoleId})
+        </if>
+        <if test="startTimeStamp > 0">
+            and (annotate.last_modify_time >= #{startTimeStamp})
+        </if>
+        <if test="endTimeStamp > 0">
+            and (#{endTimeStamp} >= annotate.last_modify_time)
+        </if>
+        <if test="pid != null and pid != ''.toString()">
+            <choose>
+                <when test="pid == '-'.toString()">
+                    and (pid is null)
+                </when>
+                <otherwise>
+                    and find_in_set(annotate.pid,#{pid})
+                </otherwise>
+            </choose>
+        </if>
+        <if test="nodeName != null and nodeName != ''.toString()">
+            and find_in_set(annotate.node_name,#{nodeName})
+        </if>
+        <if test="path != null and path != ''.toString()">
+            and find_in_set(annotate.path,#{path})
+        </if>
+        <if test="parentPath != null and parentPath != ''.toString()">
+            and (annotate.path like concat(#{path},'/%'))
+        </if>
+        <if test="typeId != null and typeId != ''.toString()">
+            and find_in_set(annotate.type_id,#{typeId})
+        </if>
+        <if test="fuzzyPath != null and fuzzyPath != ''.toString()">
+            and (annotate.path = #{fuzzyPath} or #{fuzzyPath} like concat(annotate.path,'/%'))
+        </if>
+    </sql>
+
+    <resultMap id="AnnotateMap" type="com.maoding.storage.zeroc.AnnotateDTO" autoMapping="true">
+        <association property="element" select="selectElementByAnnotateId" column="{annotateId=id}" fetchType="eager"/>
+        <collection property="accessoryList" select="selectFileByAnnotateId" column="{annotateId=id}" fetchType="eager"/>
+    </resultMap>
+
+    <select id="listAnnotate" resultMap="AnnotateMap" parameterType="com.maoding.storage.zeroc.QueryAnnotateDTO">
+        select annotate.*
+        from
+            md_tree_annotate annotate
+        <where>
+            <include refid="ConditionForQueryAnnotate"/>
+        </where>
+    </select>
+
+    <select id="selectElementByAnnotateId" resultType="com.maoding.storage.zeroc.EmbedElementDTO" parameterType="java.util.Map">
+        select element.*
+        from
+            md_list_attachment attachment
+            inner join md_list_element element on (attachment.attachment_element_id = element.id)
+        where
+            (attachment.deleted = 0)
+            <if test="annotateId != null and annotateId != ''.toString()">
+                and (attachment.annotate_id = #{annotateId})
+            </if>
+        order by attachment.last_modify_time desc
+        limit 1
+    </select>
+
+    <select id="selectFileByAnnotateId" resultType="com.maoding.storage.zeroc.NodeFileDTO" parameterType="java.util.Map">
+        select file.*
+        from
+            md_list_attachment attachment
+            inner join md_list_storage_file file on (attachment.attachment_file_id = file.id)
+        where
+            (attachment.deleted = 0)
+            <if test="annotateId != null and annotateId != ''.toString()">
+                and (attachment.annotate_id = #{annotateId})
+            </if>
+    </select>
+
+</mapper>

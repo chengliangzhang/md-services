@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.common.dao.ConstDao">
+    <sql id="ConstQueryFilter">
+        <if test="classicId != null and classicId != ''.toString()">
+            and find_in_set(const_list.classic_id,#{classicId})
+        </if>
+        <if test="codeId != null and codeId != ''.toString()">
+            and find_in_set(const_list.code_id,#{codeId})
+        </if>
+        <if test="title != null and title != ''.toString()">
+            and find_in_set(const_list.title,#{title})
+        </if>
+    </sql>
+
+    <select id="listConst" resultType="com.maoding.common.entity.ConstEntity" parameterType="com.maoding.common.zeroc.ConstQuery">
+        select const_list.*
+        from
+            md_const const_list
+        <where>
+            <include refid="ConstQueryFilter"/>
+        </where>
+    </select>
+
+    <sql id="VersionQueryFilter">
+        <if test="svnRepo != null and svnRepo != ''.toString()">
+            and find_in_set(version_list.svn_repo,#{svnRepo})
+        </if>
+        <if test="versionName != null and versionName != ''.toString()">
+            and find_in_set(version_list.version_name,#{versionName})
+        </if>
+        <if test="serviceSvnVersion != null and serviceSvnVersion != ''.toString()">
+            and ((version_list.exclude_depend_svn_version is null) or (not find_in_set(#{serviceSvnVersion},version_list.exclude_depend_svn_version)))
+            <![CDATA[and (((version_list.min_depend_svn_version is null and version_list.max_depend_svn_version is null)
+                or (((version_list.min_depend_svn_version <= #{serviceSvnVersion}) or (version_list.min_depend_svn_version is null)) and (#{serviceSvnVersion} <= version_list.max_depend_svn_version))
+                or ((version_list.min_depend_svn_version <= #{serviceSvnVersion}) and ((version_list.max_depend_svn_version is null) or (#{serviceSvnVersion} <= version_list.max_depend_svn_version)))
+                or ((version_list.include_depend_svn_version is not null) and (find_in_set(#{serviceSvnVersion},version_list.include_depend_svn_version))))
+            )]]>
+        </if>
+    </sql>
+
+    <sql id="limitSQL">
+        <if test="limitRows != null and limitRows != ''.toString()">
+            limit
+            <if test="limitOffset != null and limitOffset != ''.toString()">
+                ${limitOffset},
+            </if>
+            ${limitRows}
+        </if>
+    </sql>
+
+    <select id="listVersion" resultType="com.maoding.common.zeroc.VersionDTO" parameterType="com.maoding.common.zeroc.VersionQuery">
+        select
+            version_list.*
+        from
+            md_list_version version_list
+        <where>
+            <include refid="VersionQueryFilter"/>
+        </where>
+        order by version_list.version_name desc
+        <include refid="limitSQL"/>
+    </select>
+
+</mapper>

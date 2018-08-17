@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.maoding.storage.dao.AttachmentListDao">
+    <update id="deleteAttachment" parameterType="java.util.Map">
+        update md_list_attachment t
+        <set>
+            t.deleted = 1,
+            <if test="lastModifyUserId != null and lastModifyUserId != ''.toString()">
+                t.last_modify_user_id = #{lastModifyUserId},
+            </if>
+        </set>
+        <where>
+            <if test="annotateId != null and annotateId != ''.toString()">
+                find_in_set(t.annotate_id,#{annotateId})
+            </if>
+            <if test="attachmentIdList != null">
+                and ((t.attachment_file_id in
+                <foreach collection="attachmentIdList" item="id" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+                ) or (t.attachment_element_id in
+                <foreach collection="attachmentIdList" item="id" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+                ))
+            </if>
+        </where>
+    </update>
+</mapper>
