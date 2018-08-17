@@ -37,22 +37,22 @@ public class CoreRemoteService<P extends ObjectPrx> extends _ObjectPrxI implemen
         public void run() {
             //查找服务代理
             P prx = null;
-try {
-    Communicator c = getCommunicator(config);
-    prx = ObjectPrx._checkedCast(c.stringToProxy(service),P.ice_staticId(), proxy, impl);
-    String info = ((c.getDefaultLocator() != null) ? "在" + c.getDefaultLocator().toString() : "") + "找到" + service + "服务";
-    if (!StringUtils.isSame(lastInfo, info)) {
-        log.info(info);
-        lastInfo = info;
-    }
-} catch (ConnectFailedException e) {
-    String info = ((lastCommunicator != null) && (lastCommunicator.getDefaultLocator() != null) ?
-            "在" + lastCommunicator.getDefaultLocator().toString() : "") + "无法找到" + service + "服务";
-    if (!StringUtils.isSame(lastInfo,info)) {
-        log.warn(info);
-        lastInfo = info;
-    }
-}
+            try {
+                Communicator c = getCommunicator(config);
+                prx = ObjectPrx._checkedCast(c.stringToProxy(service),P.ice_staticId(), proxy, impl);
+                String info = ((c.getDefaultLocator() != null) ? "在" + c.getDefaultLocator().toString() : "") + "找到" + service + "服务";
+                if (!StringUtils.isSame(lastInfo, info)) {
+                    log.info(info);
+                    lastInfo = info;
+                }
+            } catch (ConnectFailedException e) {
+                String info = ((lastCommunicator != null) && (lastCommunicator.getDefaultLocator() != null) ?
+                        "在" + lastCommunicator.getDefaultLocator().toString() : "") + "无法找到" + service + "服务";
+                if (!StringUtils.isSame(lastInfo,info)) {
+                    log.warn(info);
+                    lastInfo = info;
+                }
+            }
 
             remotePrx = prx;
             connectThread = null;

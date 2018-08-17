@@ -10,9 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.beans.BeanInfo;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -64,11 +61,6 @@ public class BeanUtilsTest {
             createFromClass1ToClass2();
         }
         System.out.println("===>testCreateFrom:" + (System.currentTimeMillis()-t) + "ms");
-        long t2 = System.currentTimeMillis();
-        for (int i=0; i<10000; i++) {
-            copyFields();
-        }
-        System.out.println("===>testcopyFields:" + (System.currentTimeMillis()-t2) + "ms");
     }
 
     @Test
@@ -151,34 +143,4 @@ public class BeanUtilsTest {
         Assert.assertEquals(src.getI(),des.getI());
     }
 
-    private void copyFields() throws Exception {
-        TestClass1 src = new TestClass1();
-        src.setDigital(3);
-        src.setObjectDigital(5L);
-        src.setString("class1");
-        src.setObject(new Father(1));
-        src.setArray(new byte[]{1,2,3});
-        src.setEntity(new CoreEntity());
-        src.setList(new ArrayList<>());
-        src.getList().add(1);
-
-        TestClass1 dst = new TestClass1();
-
-        BeanInfo sourceBeanInfo = Introspector.getBeanInfo(src.getClass(), Object.class);
-        PropertyDescriptor[] sourceProperties = sourceBeanInfo.getPropertyDescriptors();
-        BeanInfo destBeanInfo = Introspector.getBeanInfo(dst.getClass(), Object.class);
-        PropertyDescriptor[] destProperties = destBeanInfo.getPropertyDescriptors();
-
-        for (int i = 0; i < sourceProperties.length; i++) {
-
-            for (int j = 0; j < destProperties.length; j++) {
-
-                if (sourceProperties[i].getName().equals(destProperties[j].getName())) {
-                    //调用source的getter方法和dest的setter方法
-                    destProperties[j].getWriteMethod().invoke(dst, sourceProperties[i].getReadMethod().invoke(src));
-                    break;
-                }
-            }
-        }
-    }
 }

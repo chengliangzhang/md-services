@@ -1,7 +1,12 @@
 package com.maoding.coreNotice.activeMQ;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jms.DefaultJmsListenerContainerFactoryConfigurer;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerContainerFactory;
 import org.springframework.jms.connection.JmsTransactionManager;
@@ -20,10 +25,10 @@ import java.util.Map;
  * 日    期 : 2018/1/18 18:31
  * 描    述 :
  */
-//@Configuration
-//@EnableJms
-//@EnableAutoConfiguration
-//@ConfigurationProperties(prefix = "activemq")
+@Configuration
+@EnableJms
+@EnableAutoConfiguration
+@ConfigurationProperties(prefix = "activemq")
 public class ActiveMQConfig {
     public final static String LISTENER_CONTAINER_QUEUE = "LISTENER_CONTAINER_QUEUE";
     public final static String LISTENER_CONTAINER_TOPIC = "LISTENER_CONTAINER_TOPIC";
@@ -59,7 +64,7 @@ public class ActiveMQConfig {
     /**
      * 创建 ActiveMQ 的连接工厂
      */
-//    @Bean
+    @Bean
     public ConnectionFactory connectionFactory() {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
         connectionFactory.setBrokerURL(brokerUrl);
@@ -72,7 +77,7 @@ public class ActiveMQConfig {
     /**
      * JMS 队列的监听容器工厂
      */
-//    @Bean(name = LISTENER_CONTAINER_QUEUE)
+    @Bean(name = LISTENER_CONTAINER_QUEUE)
     public JmsListenerContainerFactory<?> jmsListenerContainerFactory(ConnectionFactory connectionFactory, DefaultJmsListenerContainerFactoryConfigurer configurer) {
         DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
@@ -98,7 +103,7 @@ public class ActiveMQConfig {
     /**
      * JMS 队列的模板类
      */
-//    @Bean
+    @Bean
     public JmsTemplate jmsTemplate(ConnectionFactory connectionFactory, MessageConverter messageConverter) {
         JmsTemplate template = new JmsTemplate();
         template.setMessageConverter(messageConverter);
@@ -115,7 +120,7 @@ public class ActiveMQConfig {
         return template;
     }*/
 
-//    @Bean
+    @Bean
     public MessageConverter jacksonJmsMessageConverter() {
         MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
         converter.setTargetType(MessageType.TEXT);
@@ -126,7 +131,7 @@ public class ActiveMQConfig {
         return converter;
     }
 
-//    @Bean
+    @Bean
     public JmsTransactionManager jmsTransactionManager(ConnectionFactory connectionFactory) {
         return new JmsTransactionManager(connectionFactory);
     }

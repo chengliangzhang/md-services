@@ -1,7 +1,7 @@
 package com.maoding.company.dao;
 
+import com.maoding.coreBase.CoreDao;
 import com.maoding.company.entity.CompanyEntity;
-import com.maoding.coreBase.BaseDao;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -11,5 +11,5 @@ import org.springframework.stereotype.Repository;
  * 描    述 :
  */
 @Repository
-public interface CompanyDao extends BaseDao<CompanyEntity> {
+public interface CompanyDao extends CoreDao<CompanyEntity> {
 }
