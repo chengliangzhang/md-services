@@ -58,10 +58,10 @@ public class CompanyServiceImplTest {
     public void testInsert() throws Exception {
         CompanyEntity entity = new CompanyEntity();
         entity.setCompanyName("测测插入");
-        entity.reset();
+        entity.resetId();
         entity.setCreateBy("aaaaa");
-        entity.setLastModifyTime(new Date());
-        entity.setLastModifyUserId("bbbbbb");
+        entity.setCreateDate(new Date());
+        entity.setCreateBy("bbbbbb");
         companyDao.insert(entity);
     }
 }

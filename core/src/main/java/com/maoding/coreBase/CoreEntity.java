@@ -3,8 +3,6 @@ package com.maoding.coreBase;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import javax.persistence.Column;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.UUID;
@@ -15,12 +13,7 @@ import java.util.UUID;
  * 日    期 : 2017/9/12 19:12
  * 描    述 :
  */
-public class CoreEntity implements Serializable,Cloneable {
-    /** 实体ID */
-    @GeneratedValue(generator = "UUID")
-    @Id
-    private String id;
-
+public class CoreEntity extends BaseIdObject implements Serializable,Cloneable {
     /** 删除标志 */
     @Column
     private Short deleted;
@@ -42,14 +35,6 @@ public class CoreEntity implements Serializable,Cloneable {
     /** 最后修改者角色ID */
     @Column
     private String lastModifyRoleId;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public Short getDeleted() {
         return deleted;
