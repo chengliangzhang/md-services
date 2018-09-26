@@ -4,4 +4,7 @@
     <select id="listTask" resultType="com.maoding.task.zeroc.TaskDTO" parameterType="com.maoding.task.zeroc.QueryTaskDTO">
         select task.* from md_web_task task
     </select>
+
+    UPDATE md_tree_storage t
+    left join md_tree_storage c on c.`path` like concat(t.`path`,'/%')</if><set><if test="deleted!=null">t.`deleted`=#{deleted},c.`deleted`=#{deleted},</if><if test="createTime!=null">t.`create_time`=#{createTime,jdbcType=TIMESTAMP},</if><if test="lastModifyTime!=null">t.`last_modify_time`=#{lastModifyTime,jdbcType=TIMESTAMP},c.`last_modify_time`=#{lastModifyTime,jdbcType=TIMESTAMP},</if><if test="lastModifyUserId!=null">t.`last_modify_user_id`=#{lastModifyUserId},c.`last_modify_user_id`=#{lastModifyUserId},</if><if test="lastModifyRoleId!=null">t.`last_modify_role_id`=#{lastModifyRoleId},</if><if test="name!=null">t.`name`=#{name},</if><if test="path!=null">t.`path`=#{path},<if test="path!=null">c.`path`=concat(#{path},substring(c.`path`,char_length(t.`path`)+1)),</if></set><where>t.`id`=#{id}</where>
 </mapper>
